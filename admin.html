@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>MT 수요조사 관리자</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="hero hero-compact">
+    <div class="container container-wide hero-row">
+      <div>
+        <span class="chip">관리자 전용</span>
+        <h1>MT 수요조사 응답 현황</h1>
+      </div>
+      <button id="logout-btn" type="button" class="btn btn-ghost" hidden>로그아웃</button>
+    </div>
+  </header>
+
+  <main class="container container-wide">
+    <div id="config-warning" class="notice notice-error" hidden>
+      Firebase 설정이 완료되지 않았습니다. <code>js/firebase-config.js</code> 파일을 수정해 주세요.
+    </div>
+
+    <form id="login-form" class="card narrow" hidden>
+      <h2 class="section-title">관리자 로그인</h2>
+      <div class="field">
+        <label for="email">이메일</label>
+        <input id="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+      </div>
+      <p id="login-error" class="notice notice-error" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block">로그인</button>
+    </form>
+
+    <section id="dashboard" hidden>
+      <div class="stats">
+        <div class="stat"><span class="stat-label">응답 인원</span><span id="stat-total" class="stat-value">0</span></div>
+        <div class="stat stat-yes"><span class="stat-label">참석</span><span id="stat-yes" class="stat-value">0</span></div>
+        <div class="stat stat-maybe"><span class="stat-label">미정</span><span id="stat-maybe" class="stat-value">0</span></div>
+        <div class="stat"><span class="stat-label">불참</span><span id="stat-no" class="stat-value">0</span></div>
+      </div>
+      <p class="stats-note">같은 연락처로 여러 번 제출한 경우 가장 최근 응답만 집계합니다.</p>
+
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="이름, 연락처 검색">
+        <select id="filter">
+          <option value="all">전체</option>
+          <option value="yes">참석만</option>
+          <option value="maybe">미정만</option>
+          <option value="no">불참만</option>
+        </select>
+        <label class="check">
+          <input id="latest-only" type="checkbox" checked>
+          <span>최신 응답만 보기</span>
+        </label>
+        <button id="export-btn" type="button" class="btn btn-primary">엑셀 다운로드</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>이름</th>
+              <th>연락처</th>
+              <th>참석 여부</th>
+              <th>제출 일시</th>
+              <th>비고</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <p id="empty" class="empty" hidden>표시할 응답이 없습니다.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

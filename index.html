@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>동기 MT 수요조사</title>
+  <meta name="description" content="동기 MT 참석 수요조사">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <span class="chip">일정·장소 미정</span>
+      <h1>동기 MT 수요조사</h1>
+      <p>동기 MT 참석 인원을 먼저 파악하려고 합니다.<br>입력하신 정보는 MT 인원 파악과 안내 연락에만 사용됩니다.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="config-warning" class="notice notice-error" hidden>
+      Firebase 설정이 완료되지 않았습니다. <code>js/firebase-config.js</code> 파일을 수정해 주세요.
+    </div>
+
+    <form id="survey-form" novalidate>
+      <section class="card info">
+        <div class="info-row">
+          <span class="info-label">일자</span>
+          <span class="info-value">미정</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">장소</span>
+          <span class="info-value">미정</span>
+        </div>
+        <p class="info-note">일자와 장소는 참석 인원이 확정된 뒤 정해서 따로 안내드릴 예정입니다.</p>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title"><span class="step">1</span>기본 정보</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="name">이름 <span class="req">*</span></label>
+            <input id="name" name="name" type="text" maxlength="30" autocomplete="name" placeholder="홍길동" required>
+          </div>
+          <div class="field">
+            <label for="phone">연락처 <span class="req">*</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="numeric" maxlength="13" autocomplete="tel" placeholder="010-1234-5678" required>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title"><span class="step">2</span>MT 참석 여부</h2>
+        <fieldset class="field">
+          <legend class="sr-only">MT 참석 여부</legend>
+          <div class="segmented">
+            <label><input type="radio" name="attendance" value="yes" required><span>참석</span></label>
+            <label><input type="radio" name="attendance" value="maybe"><span>미정</span></label>
+            <label><input type="radio" name="attendance" value="no"><span>불참</span></label>
+          </div>
+          <p class="hint">일정에 따라 달라진다면 ‘미정’을 골라 주세요.</p>
+        </fieldset>
+      </section>
+
+      <p id="form-error" class="notice notice-error" role="alert" hidden></p>
+
+      <button id="submit-btn" type="submit" class="btn btn-primary btn-block">제출하기</button>
+    </form>
+
+    <section id="done" class="card done" hidden>
+      <div class="done-icon" aria-hidden="true">✓</div>
+      <h2>제출이 완료되었습니다</h2>
+      <p>응답해 주셔서 감사합니다.<br>응답을 바꾸려면 같은 연락처로 다시 제출해 주세요.<br>가장 최근 응답이 반영됩니다.</p>
+      <button id="again-btn" type="button" class="btn">다시 작성하기</button>
+    </section>
+  </main>
+
+  <script type="module" src="js/survey.js"></script>
+</body>
+</html>
