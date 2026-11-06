@@ -12,7 +12,7 @@
 <body>
   <header class="hero">
     <div class="container">
-      <span class="chip">일정·장소 미정</span>
+      <span class="chip">11월 말 ~ 12월 초 예정</span>
       <h1>동기 MT 수요조사</h1>
       <p>동기 MT 참석 인원을 먼저 파악하려고 합니다.<br>입력하신 정보는 MT 인원 파악과 안내 연락에만 사용됩니다.</p>
     </div>
@@ -26,14 +26,14 @@
     <form id="survey-form" novalidate>
       <section class="card info">
         <div class="info-row">
-          <span class="info-label">일자</span>
-          <span class="info-value">미정</span>
+          <span class="info-label">일정</span>
+          <span class="info-value">11월 말 ~ 12월 초 중 (예정)</span>
         </div>
         <div class="info-row">
           <span class="info-label">장소</span>
           <span class="info-value">미정</span>
         </div>
-        <p class="info-note">일자와 장소는 참석 인원이 확정된 뒤 정해서 따로 안내드릴 예정입니다.</p>
+        <p class="info-note">정확한 날짜와 장소는 참석 인원이 확정된 뒤 정해서 따로 안내드릴 예정입니다.</p>
       </section>
 
       <section class="card">
@@ -56,11 +56,28 @@
           <legend class="sr-only">MT 참석 여부</legend>
           <div class="segmented">
             <label><input type="radio" name="attendance" value="yes" required><span>참석</span></label>
-            <label><input type="radio" name="attendance" value="maybe"><span>미정</span></label>
             <label><input type="radio" name="attendance" value="no"><span>불참</span></label>
           </div>
-          <p class="hint">일정에 따라 달라진다면 ‘미정’을 골라 주세요.</p>
         </fieldset>
+      </section>
+
+      <section id="conflict-section" class="card reveal" hidden>
+        <h2 class="section-title"><span class="step">3</span>변경할 수 없는 일정 <span class="optional">선택</span></h2>
+        <p class="desc">
+          <strong id="range-text">11월 말 ~ 12월 초</strong> 중 이미 잡혀 있어 옮길 수 없는 일정이 있다면 알려 주세요.
+          MT 날짜를 정할 때 참고합니다. 없으면 비워 두셔도 됩니다.
+        </p>
+
+        <fieldset class="field">
+          <legend class="field-label">안 되는 날을 눌러 주세요</legend>
+          <div id="calendar" class="calendar calendar-pick"></div>
+          <p id="picked" class="hint">선택한 날이 없습니다.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="conflictNote">일정 내용</label>
+          <textarea id="conflictNote" name="conflictNote" maxlength="300" rows="3" placeholder="예) 11/28 오후 아르바이트, 12/5~6 가족 여행"></textarea>
+        </div>
       </section>
 
       <p id="form-error" class="notice notice-error" role="alert" hidden></p>

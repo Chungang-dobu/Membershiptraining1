@@ -7,6 +7,7 @@ import {
 import { db, auth, isConfigured } from "./firebase.js";
 import { COLLECTION } from "./firebase-config.js";
 import { ATTENDANCE } from "./attendance.js";
+import { buildCalendar, dayLabel, formatDay, formatDays, scheduleDays } from "./schedule.js";
 
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
@@ -16,10 +17,14 @@ const emptyEl = document.getElementById("empty");
 const searchEl = document.getElementById("search");
 const filterEl = document.getElementById("filter");
 const latestOnlyEl = document.getElementById("latest-only");
+const calendarEl = document.getElementById("calendar");
+const dateFilterEl = document.getElementById("date-filter");
 
 // 제출 순서(오래된 것 → 최근)대로 정렬된 응답 목록
 let responses = [];
 let unsubscribe = null;
+// 달력에서 고른 날짜: 그날 안 되는 사람만 목록에 표시
+let selectedDate = "";
 
 if (!isConfigured) {
   document.getElementById("config-warning").hidden = false;
@@ -78,9 +83,21 @@ function analyze() {
   });
   return responses.map((r) => ({
     ...r,
+    conflictDates: Array.isArray(r.conflictDates) ? r.conflictDates : [],
+    conflictNote: r.conflictNote || "",
     isLatest: latestIdByPhone.get(r.phone) === r.id,
     submitCount: countByPhone.get(r.phone),
   }));
+}
+
+const hasConflict = (r) => r.attendance === "yes" && (r.conflictDates.length > 0 || r.conflictNote !== "");
+
+// 날짜별 집계: 참석자(최신 응답) 중 그날 안 되는 사람과 가능한 인원
+function dateSummary(attendees) {
+  return scheduleDays().map((day) => {
+    const busy = attendees.filter((r) => r.conflictDates.includes(day.key));
+    return { ...day, busy, available: attendees.length - busy.length };
+  });
 }
 
 function note(r) {
@@ -96,23 +113,16 @@ function formatDate(ts) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function countBy(list) {
-  const counts = { yes: 0, maybe: 0, no: 0 };
-  list.forEach((r) => {
-    if (r.attendance in counts) counts[r.attendance] += 1;
-  });
-  return counts;
-}
-
 function visibleResponses(all) {
   const keyword = searchEl.value.trim().toLowerCase();
   const keywordDigits = keyword.replace(/\D/g, "");
   const filter = filterEl.value;
   return all.filter((r) => {
     if (latestOnlyEl.checked && !r.isLatest) return false;
-    if (filter !== "all" && r.attendance !== filter) return false;
+    if (filter === "conflict" ? !hasConflict(r) : filter !== "all" && r.attendance !== filter) return false;
+    if (selectedDate && !(r.attendance === "yes" && r.conflictDates.includes(selectedDate))) return false;
     if (!keyword) return true;
-    if ((r.name || "").toLowerCase().includes(keyword)) return true;
+    if ([r.name, r.conflictNote].some((v) => (v || "").toLowerCase().includes(keyword))) return true;
     return keywordDigits !== "" && (r.phone || "").replace(/\D/g, "").includes(keywordDigits);
   });
 }
@@ -124,14 +134,49 @@ function cell(text, className) {
   return td;
 }
 
+function selectDate(key) {
+  selectedDate = selectedDate === key ? "" : key;
+  render();
+}
+
+function renderCalendar(summary) {
+  const best = Math.max(0, ...summary.map((d) => d.available));
+  const byKey = new Map(summary.map((d) => [d.key, d]));
+  buildCalendar(calendarEl, (day, showMonth) => {
+    const s = byKey.get(day.key);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    if (best > 0 && s.available === best) btn.classList.add("best");
+    if (selectedDate === day.key) btn.classList.add("selected");
+    btn.title = s.busy.length ? `안 되는 사람: ${s.busy.map((r) => r.name).join(", ")}` : "안 되는 사람 없음";
+    const date = document.createElement("span");
+    date.className = "cal-date";
+    date.textContent = dayLabel(day, showMonth);
+    const count = document.createElement("span");
+    count.className = "cal-count";
+    count.textContent = `${s.available}명`;
+    const busy = document.createElement("span");
+    busy.className = "cal-busy";
+    busy.textContent = s.busy.length ? `불가 ${s.busy.length}` : "";
+    btn.append(date, count, busy);
+    btn.addEventListener("click", () => selectDate(day.key));
+    return btn;
+  });
+}
+
 function render() {
   const all = analyze();
   const latest = all.filter((r) => r.isLatest);
-  const counts = countBy(latest);
+  const attendees = latest.filter((r) => r.attendance === "yes");
   document.getElementById("stat-total").textContent = latest.length;
-  document.getElementById("stat-yes").textContent = counts.yes;
-  document.getElementById("stat-maybe").textContent = counts.maybe;
-  document.getElementById("stat-no").textContent = counts.no;
+  document.getElementById("stat-yes").textContent = attendees.length;
+  document.getElementById("stat-no").textContent = latest.filter((r) => r.attendance === "no").length;
+  document.getElementById("stat-conflict").textContent = attendees.filter(hasConflict).length;
+  document.getElementById("cal-base").textContent = attendees.length;
+  renderCalendar(dateSummary(attendees));
+
+  dateFilterEl.hidden = !selectedDate;
+  document.getElementById("date-filter-text").textContent = selectedDate ? `${formatDay(selectedDate)}에 안 되는 사람만 보는 중` : "";
 
   const list = visibleResponses(all);
   rowsEl.replaceChildren();
@@ -143,6 +188,8 @@ function render() {
       cell(r.name),
       cell(r.phone || ""),
       cell(ATTENDANCE[r.attendance] || "", `badge badge-${r.attendance}`),
+      cell(formatDays(r.conflictDates), "dates"),
+      cell(r.conflictNote, "memo"),
       cell(formatDate(r.createdAt)),
       cell(note(r), "muted"),
     );
@@ -172,6 +219,7 @@ async function removeResponse(r) {
 searchEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 latestOnlyEl.addEventListener("change", render);
+document.getElementById("date-filter-clear").addEventListener("click", () => selectDate(""));
 
 document.getElementById("export-btn").addEventListener("click", () => {
   const all = analyze();
@@ -181,34 +229,44 @@ document.getElementById("export-btn").addEventListener("click", () => {
     return;
   }
 
-  const header = ["No.", "이름", "연락처", "참석 여부", "제출 일시", "비고"];
+  const header = ["No.", "이름", "연락처", "참석 여부", "안 되는 날", "일정 내용", "제출 일시", "비고"];
   const rows = list.map((r, i) => [
     i + 1,
     r.name,
     r.phone || "",
     ATTENDANCE[r.attendance] || "",
+    formatDays(r.conflictDates),
+    r.conflictNote,
     formatDate(r.createdAt),
     note(r),
   ]);
   const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
-  sheet["!cols"] = [6, 12, 16, 10, 18, 18].map((wch) => ({ wch }));
+  sheet["!cols"] = [6, 12, 16, 10, 30, 40, 18, 18].map((wch) => ({ wch }));
   sheet["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: header.length - 1 } }) };
 
-  // 집계 시트는 화면 상단 숫자와 같습니다 (사람별 최신 응답 기준, 검색·필터와 무관).
+  // 집계·날짜별 시트는 화면 상단 숫자·달력과 같습니다 (사람별 최신 응답 기준, 검색·필터와 무관).
   const latest = all.filter((r) => r.isLatest);
-  const counts = countBy(latest);
+  const attendees = latest.filter((r) => r.attendance === "yes");
   const summary = XLSX.utils.aoa_to_sheet([
     ["구분", "인원"],
-    [ATTENDANCE.yes, counts.yes],
-    [ATTENDANCE.maybe, counts.maybe],
-    [ATTENDANCE.no, counts.no],
+    [ATTENDANCE.yes, attendees.length],
+    [ATTENDANCE.no, latest.length - attendees.length],
     ["합계", latest.length],
+    [],
+    ["참석자 중 불가 일정 있음", attendees.filter(hasConflict).length],
   ]);
-  summary["!cols"] = [{ wch: 10 }, { wch: 10 }];
+  summary["!cols"] = [{ wch: 24 }, { wch: 10 }];
+
+  const byDate = XLSX.utils.aoa_to_sheet([
+    ["날짜", "참석 가능", "불가", "안 되는 사람"],
+    ...dateSummary(attendees).map((d) => [formatDay(d.key), d.available, d.busy.length, d.busy.map((r) => r.name).join(", ")]),
+  ]);
+  byDate["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 50 }];
 
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, "응답 목록");
   XLSX.utils.book_append_sheet(book, summary, "집계");
+  XLSX.utils.book_append_sheet(book, byDate, "날짜별 가능 인원");
 
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");

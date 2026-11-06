@@ -9,10 +9,14 @@ service cloud.firestore {
     }
 
     function isValidResponse(d) {
-      return d.keys().hasOnly(['name', 'phone', 'attendance', 'createdAt'])
+      return d.keys().hasOnly(['name', 'phone', 'attendance', 'conflictDates', 'conflictNote', 'createdAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 30
         && d.phone is string && d.phone.matches('^01[016789]-[0-9]{3,4}-[0-9]{4}$')
-        && d.attendance in ['yes', 'maybe', 'no']
+        && d.attendance in ['yes', 'no']
+        // 변경할 수 없는 일정(불가 날짜 목록, 메모)은 참석하는 사람만 적을 수 있습니다.
+        && d.conflictDates is list && d.conflictDates.size() <= 60
+        && d.conflictNote is string && d.conflictNote.size() <= 300
+        && (d.attendance == 'yes' || (d.conflictDates.size() == 0 && d.conflictNote.size() == 0))
         && d.createdAt == request.time;
     }
 

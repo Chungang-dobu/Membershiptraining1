@@ -43,18 +43,24 @@
       <div class="stats">
         <div class="stat"><span class="stat-label">응답 인원</span><span id="stat-total" class="stat-value">0</span></div>
         <div class="stat stat-yes"><span class="stat-label">참석</span><span id="stat-yes" class="stat-value">0</span></div>
-        <div class="stat stat-maybe"><span class="stat-label">미정</span><span id="stat-maybe" class="stat-value">0</span></div>
         <div class="stat"><span class="stat-label">불참</span><span id="stat-no" class="stat-value">0</span></div>
+        <div class="stat stat-conflict"><span class="stat-label">참석자 중 불가 일정 있음</span><span id="stat-conflict" class="stat-value">0</span></div>
       </div>
       <p class="stats-note">같은 연락처로 여러 번 제출한 경우 가장 최근 응답만 집계합니다.</p>
 
+      <section class="card">
+        <h2 class="section-title">날짜별 참석 가능 인원</h2>
+        <p class="desc">참석자 <strong id="cal-base">0</strong>명 중 그날 일정이 없는 인원입니다. 가장 많이 가능한 날은 초록색으로 표시됩니다. 날짜를 누르면 그날 안 되는 사람만 아래 목록에 보입니다.</p>
+        <div id="calendar" class="calendar calendar-stats"></div>
+      </section>
+
       <div class="toolbar">
-        <input id="search" type="search" placeholder="이름, 연락처 검색">
+        <input id="search" type="search" placeholder="이름, 연락처, 일정 내용 검색">
         <select id="filter">
           <option value="all">전체</option>
           <option value="yes">참석만</option>
-          <option value="maybe">미정만</option>
           <option value="no">불참만</option>
+          <option value="conflict">불가 일정 있음</option>
         </select>
         <label class="check">
           <input id="latest-only" type="checkbox" checked>
@@ -62,6 +68,11 @@
         </label>
         <button id="export-btn" type="button" class="btn btn-primary">엑셀 다운로드</button>
       </div>
+
+      <p id="date-filter" class="filter-chip" hidden>
+        <span id="date-filter-text"></span>
+        <button id="date-filter-clear" type="button" class="btn btn-small">해제</button>
+      </p>
 
       <div class="table-wrap">
         <table>
@@ -71,6 +82,8 @@
               <th>이름</th>
               <th>연락처</th>
               <th>참석 여부</th>
+              <th>안 되는 날</th>
+              <th>일정 내용</th>
               <th>제출 일시</th>
               <th>비고</th>
               <th></th>

@@ -1,7 +1,6 @@
 // 참석 여부 값과 화면에 보이는 이름. firestore.rules 의 허용 값과 일치해야 합니다.
 export const ATTENDANCE = {
   yes: "참석",
-  maybe: "미정",
   no: "불참",
 };
 
