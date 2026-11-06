@@ -5,7 +5,7 @@ service cloud.firestore {
     // 여러 명이면 ['a@gmail.com', 'b@gmail.com'] 처럼 적습니다.
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email in ['YOUR_ADMIN_EMAIL@gmail.com'];
+        && request.auth.token.email in ['chungangdobu@gmail.com'];
     }
 
     function isValidResponse(d) {
