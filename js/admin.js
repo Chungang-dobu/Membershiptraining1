@@ -1,5 +1,5 @@
 import {
-  collection, query, orderBy, onSnapshot, doc, deleteDoc, writeBatch, deleteField, Timestamp,
+  collection, query, orderBy, onSnapshot, doc, deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -19,7 +19,6 @@ const filterEl = document.getElementById("filter");
 const latestOnlyEl = document.getElementById("latest-only");
 const calendarEl = document.getElementById("calendar");
 const dateFilterEl = document.getElementById("date-filter");
-const orderHintEl = document.getElementById("order-hint");
 
 // 실제 제출 순서(오래된 것 → 최근)대로 정렬된 응답 목록
 let responses = [];
@@ -77,7 +76,7 @@ function subscribe() {
 const toMillis = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
 
 // 같은 연락처로 여러 번 제출했다면 가장 나중에 제출한 응답만 유효한 응답으로 봅니다.
-// 목록 순서는 기본적으로 제출한 순서이고, 관리자가 ▲▼ 로 바꾸면 순서 기준값(orderAt)이 저장됩니다.
+// 목록 순서는 제출한 순서입니다. 예전에 관리자가 바꿔 둔 순서(orderAt)가 있으면 그 순서를 그대로 따릅니다.
 // 시각은 화면·엑셀 어디에도 표시하지 않고 순서를 정하는 데만 씁니다.
 function analyze() {
   const latestIdByPhone = new Map();
@@ -117,9 +116,6 @@ function note(r) {
 
 const pad = (n) => String(n).padStart(2, "0");
 
-// 검색·필터가 없을 때만 순서를 바꿀 수 있습니다. (가려진 응답이 있으면 위아래 이동 결과가 헷갈리기 때문)
-const canReorder = () => !searchEl.value.trim() && filterEl.value === "all" && !selectedDate;
-
 function visibleResponses(all) {
   const keyword = searchEl.value.trim().toLowerCase();
   const keywordDigits = keyword.replace(/\D/g, "");
@@ -141,12 +137,11 @@ function cell(text, className) {
   return td;
 }
 
-function button(text, className, onClick, label) {
+function button(text, className, onClick) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = className;
   btn.textContent = text;
-  if (label) btn.setAttribute("aria-label", label);
   btn.addEventListener("click", onClick);
   return btn;
 }
@@ -181,24 +176,6 @@ function renderCalendar(summary) {
   });
 }
 
-// No. 칸: 순번 + 위/아래 이동 버튼
-function orderCell(r, i, list, reorder) {
-  const td = document.createElement("td");
-  td.className = "order";
-  const num = document.createElement("span");
-  num.className = "order-num";
-  num.textContent = i + 1;
-  td.append(num);
-  if (reorder) {
-    const up = button("▲", "btn btn-icon", () => move(list, i, -1), `${r.name} 위로`);
-    const down = button("▼", "btn btn-icon", () => move(list, i, 1), `${r.name} 아래로`);
-    up.disabled = i === 0;
-    down.disabled = i === list.length - 1;
-    td.append(up, down);
-  }
-  return td;
-}
-
 function render() {
   const all = analyze();
   const latest = all.filter((r) => r.isLatest);
@@ -213,18 +190,13 @@ function render() {
   dateFilterEl.hidden = !selectedDate;
   document.getElementById("date-filter-text").textContent = selectedDate ? `${formatDay(selectedDate)}에 안 되는 사람만 보는 중` : "";
 
-  const reorder = canReorder();
-  orderHintEl.textContent = reorder
-    ? "순서 칸의 ▲▼ 버튼으로 순서를 바꿀 수 있습니다."
-    : "검색·필터·날짜 선택을 해제하면 ▲▼ 버튼으로 순서를 바꿀 수 있습니다.";
-
   const list = visibleResponses(all);
   rowsEl.replaceChildren();
   list.forEach((r, i) => {
     const tr = document.createElement("tr");
     if (!r.isLatest) tr.className = "row-old";
     tr.append(
-      orderCell(r, i, list, reorder),
+      cell(i + 1, "order"),
       cell(r.name),
       cell(r.phone || ""),
       cell(ATTENDANCE[r.attendance] || "", `badge badge-${r.attendance}`),
@@ -238,32 +210,6 @@ function render() {
     rowsEl.append(tr);
   });
   emptyEl.hidden = list.length > 0;
-}
-
-// 순서 기준값을 정합니다. 제출했을 때의 값과 같아지면 orderAt 을 지워 원래 상태로 돌립니다.
-function timeValue(r, ms) {
-  return ms === r.submittedAt ? deleteField() : Timestamp.fromMillis(ms);
-}
-
-// 바로 위(아래) 응답과 순서 기준값을 맞바꿔 순서를 바꿉니다.
-async function move(list, i, dir) {
-  const a = list[i];
-  const b = list[i + dir];
-  if (!b) return;
-  const batch = writeBatch(db);
-  if (a.time === b.time) {
-    // 기준값이 같으면 살짝(1초) 앞(뒤)으로 옮깁니다.
-    batch.update(doc(db, COLLECTION, a.id), { orderAt: timeValue(a, b.time + dir * 1000) });
-  } else {
-    batch.update(doc(db, COLLECTION, a.id), { orderAt: timeValue(a, b.time) });
-    batch.update(doc(db, COLLECTION, b.id), { orderAt: timeValue(b, a.time) });
-  }
-  try {
-    await batch.commit();
-  } catch (err) {
-    console.error(err);
-    alert("순서를 바꾸지 못했습니다. 관리자 권한(firestore.rules)을 확인해 주세요.");
-  }
 }
 
 async function removeResponse(r) {
