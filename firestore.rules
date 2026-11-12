@@ -20,11 +20,17 @@ service cloud.firestore {
         && d.createdAt == request.time;
     }
 
+    // 관리자가 고칠 수 있는 것은 순서 기준 시각(orderAt)뿐입니다. 실제 제출 시각(createdAt)과 응답 내용은 바꿀 수 없습니다.
+    function isOrderChange() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderAt'])
+        && (!('orderAt' in request.resource.data) || request.resource.data.orderAt is timestamp);
+    }
+
     match /responses/{id} {
-      // 누구나 응답을 제출할 수 있지만, 조회·삭제는 관리자만 가능합니다.
+      // 누구나 응답을 제출할 수 있지만, 조회·삭제·순서 변경은 관리자만 가능합니다.
       allow create: if isValidResponse(request.resource.data);
       allow read, delete: if isAdmin();
-      allow update: if false;
+      allow update: if isAdmin() && isOrderChange();
     }
   }
 }
